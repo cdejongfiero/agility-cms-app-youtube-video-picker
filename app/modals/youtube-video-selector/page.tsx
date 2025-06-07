@@ -16,7 +16,8 @@ interface YouTubeVideoSelectorProps {
 
 export default function YouTubeVideoSelectorModal() {
   const { initializing, modalProps } = useAgilityAppSDK()
-  const { apiKey, channelId } = modalProps as YouTubeVideoSelectorProps
+  const props = (modalProps as YouTubeVideoSelectorProps) || {}
+  const { apiKey = '', channelId } = props
   
   const [searchTerm, setSearchTerm] = useState('')
   const [currentOrder, setCurrentOrder] = useState('date')
@@ -84,6 +85,17 @@ export default function YouTubeVideoSelectorModal() {
   }), [currentPage, nextPageToken])
 
   if (initializing) return null
+
+  // During static generation, modalProps might be null
+  if (!apiKey) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading YouTube Video Selector...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full flex flex-col">

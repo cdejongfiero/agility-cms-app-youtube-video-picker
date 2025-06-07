@@ -42,7 +42,7 @@ export function useYouTubePlaylists({
   const url = `/api/youtube/playlists?${params.toString()}`
   
   const { data, error, isLoading, mutate } = useSWR(
-    apiKey ? [url, apiKey] : null,
+    apiKey && apiKey.length > 0 ? [url, apiKey] : null,
     ([url, apiKey]) => fetcher(url, apiKey),
     {
       revalidateOnFocus: false,

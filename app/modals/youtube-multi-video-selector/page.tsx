@@ -17,7 +17,8 @@ interface YouTubeMultiVideoSelectorProps {
 
 export default function YouTubeMultiVideoSelectorModal() {
   const { initializing, modalProps } = useAgilityAppSDK()
-  const { apiKey, channelId, selectedVideoIds = [] } = modalProps as YouTubeMultiVideoSelectorProps
+  const props = (modalProps as YouTubeMultiVideoSelectorProps) || {}
+  const { apiKey = '', channelId, selectedVideoIds = [] } = props
   
   const [searchTerm, setSearchTerm] = useState('')
   const [currentOrder, setCurrentOrder] = useState('date')
@@ -97,6 +98,17 @@ export default function YouTubeMultiVideoSelectorModal() {
   const selectedCount = selectedVideos.size
 
   if (initializing) return null
+
+  // During static generation, modalProps might be null
+  if (!apiKey) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading YouTube Multi Video Selector...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full flex flex-col">

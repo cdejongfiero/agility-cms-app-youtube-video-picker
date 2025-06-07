@@ -16,7 +16,8 @@ interface YouTubePlaylistSelectorProps {
 
 export default function YouTubePlaylistSelectorModal() {
   const { initializing, modalProps } = useAgilityAppSDK()
-  const { apiKey, channelId } = modalProps as YouTubePlaylistSelectorProps
+  const props = (modalProps as YouTubePlaylistSelectorProps) || {}
+  const { apiKey = '', channelId } = props
   
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -82,6 +83,17 @@ export default function YouTubePlaylistSelectorModal() {
   }), [currentPage, nextPageToken])
 
   if (initializing) return null
+
+  // During static generation, modalProps might be null
+  if (!apiKey) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading YouTube Playlist Selector...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="h-full flex flex-col">

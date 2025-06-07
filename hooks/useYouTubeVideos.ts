@@ -45,7 +45,7 @@ export function useYouTubeVideos({
   const url = `/api/youtube/videos?${params.toString()}`
   
   const { data, error, isLoading, mutate } = useSWR(
-    apiKey ? [url, apiKey] : null,
+    apiKey && apiKey.length > 0 ? [url, apiKey] : null,
     ([url, apiKey]) => fetcher(url, apiKey),
     {
       revalidateOnFocus: false,
