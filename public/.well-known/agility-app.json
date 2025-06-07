@@ -9,15 +9,13 @@
       "name": "apiKey",
       "label": "YouTube API Key",
       "description": "Your YouTube Data API v3 key",
-      "type": "string",
-      "required": true
+      "type": "string"
     },
     {
       "name": "channelId",
       "label": "YouTube Channel ID",
       "description": "Default channel ID to load videos from (optional)",
-      "type": "string",
-      "required": false
+      "type": "string"
     }
   ],
   "capabilities": {
@@ -55,6 +53,6 @@
         "description": "Modal for browsing and selecting YouTube playlists."
       }
     ],
-    "installScreen": true
+    "installScreen": false
   }
 }
