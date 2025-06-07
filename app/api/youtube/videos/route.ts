@@ -1,5 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
+import { getShortsPlaylistId } from '../../../utils/youtube'
+
+/**
+ * Check which videos are YouTube Shorts by querying the channel's Shorts playlist
+ * @param youtube YouTube API client
+ * @param videos Array of videos to check
+ * @returns Array of videos with isShort property added
+ */
+async function detectShorts(youtube: any, videos: any[]): Promise<any[]> {
+  try {
+    // Group videos by channel ID
+    const videosByChannel = new Map<string, any[]>()
+    
+    for (const video of videos) {
+      const channelId = video.snippet.channelId
+      if (!videosByChannel.has(channelId)) {
+        videosByChannel.set(channelId, [])
+      }
+      videosByChannel.get(channelId)!.push(video)
+    }
+
+    // Check each channel's shorts
+    for (const [channelId, channelVideos] of videosByChannel) {
+      try {
+        // Convert channel ID to shorts playlist ID
+        if (!channelId || !channelId.startsWith('UC')) {
+          // If we can't get the shorts playlist ID, mark all as regular videos
+          channelVideos.forEach(video => {
+            video.isShort = false
+          })
+          continue
+        }
+
+        const shortsPlaylistId = getShortsPlaylistId(channelId)
+        
+        // Check each video to see if it's in the shorts playlist
+        for (const video of channelVideos) {
+          try {
+            const playlistResponse = await youtube.playlistItems.list({
+              part: ['id', 'snippet', 'contentDetails'],
+              playlistId: shortsPlaylistId,
+              videoId: video.id,
+              maxResults: 1
+            })
+            
+            // If the video is found in the shorts playlist, it's a short
+            video.isShort = playlistResponse.data.items && playlistResponse.data.items.length > 0
+          } catch (videoError: any) {
+            // If there's an error checking this specific video, assume it's not a short
+            console.warn(`Failed to check if video ${video.id} is a short:`, videoError.message)
+            video.isShort = false
+          }
+        }
+      } catch (channelError: any) {
+        // If there's an error with this channel, mark all its videos as regular videos
+        console.warn(`Failed to check shorts for channel ${channelId}:`, channelError.message)
+        channelVideos.forEach(video => {
+          video.isShort = false
+        })
+      }
+    }
+
+    return videos
+  } catch (error: any) {
+    console.warn('Failed to detect shorts, marking all as regular videos:', error.message)
+    // If shorts detection fails entirely, mark all videos as regular videos
+    return videos.map(video => ({ ...video, isShort: false }))
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,7 +144,10 @@ export async function GET(request: NextRequest) {
       id: videoIds,
     })
 
-    const videos = videosResponse.data.items || []
+    let videos = videosResponse.data.items || []
+
+    // Detect which videos are YouTube Shorts
+    videos = await detectShorts(youtube, videos)
 
     return NextResponse.json({
       videos,

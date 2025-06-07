@@ -10,6 +10,7 @@ export { VideoCard } from './components/VideoCard'
 export { PlaylistCard } from './components/PlaylistCard'
 export { SearchAndFilter } from './components/SearchAndFilter'
 export { LoadingState, EmptyState } from './components/LoadingState'
+export { ContentFilter } from './components/ContentFilter'
 
 // Export hooks
 export { useYouTubeVideos } from './hooks/useYouTubeVideos'

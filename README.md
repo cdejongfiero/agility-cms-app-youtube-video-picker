@@ -25,6 +25,7 @@ agility-cms-app-youtube-video-picker/
 - **Single Video Picker**: Select individual YouTube videos with rich metadata
 - **Multiple Video Picker**: Curate collections of YouTube videos  
 - **Playlist Picker**: Select YouTube playlists with full metadata
+- **YouTube Shorts Detection**: Automatically detect and filter YouTube Shorts vs regular videos
 - YouTube API v3 integration with search and pagination
 - Rich video previews with thumbnails, duration, view counts, etc.
 - Complete JSON data storage for maximum frontend flexibility
@@ -35,6 +36,8 @@ agility-cms-app-youtube-video-picker/
 - ✅ YouTube API v3 integration with search and pagination
 - ✅ Rich video previews with thumbnails, duration, view counts, likes
 - ✅ Advanced search and filtering (by relevance, date, popularity)
+- ✅ **YouTube Shorts detection and filtering** (All/Videos/Shorts)
+- ✅ Visual indicators for YouTube Shorts with red "SHORT" badges
 - ✅ Complete JSON data storage for frontend flexibility
 - ✅ Responsive, modern interface with loading states
 - ✅ Comprehensive error handling
@@ -130,7 +133,8 @@ Stores complete YouTube video JSON:
   "statistics": {
     "viewCount": "1000000",
     "likeCount": "50000"
-  }
+  },
+  "isShort": false
 }
 ```
 
@@ -237,6 +241,36 @@ The app includes utility functions for common YouTube data formatting:
 - `getEmbedUrl(videoId)` - Generate embed URLs
 - `getWatchUrl(videoId)` - Generate watch URLs
 - `getPlaylistUrl(playlistId)` - Generate playlist URLs
+- `getShortsPlaylistId(channelId)` - Convert channel ID to shorts playlist ID
+- `isLikelyShortByDuration(duration)` - Check if video is likely a short by duration
+
+## YouTube Shorts Detection
+
+The app automatically detects YouTube Shorts and provides filtering capabilities:
+
+### Features
+- **Visual Indicators**: Shorts display a red "SHORT" badge
+- **Content Filtering**: Filter by "All", "Videos", or "Shorts"
+- **Data Enhancement**: Adds `isShort` property to video JSON
+- **Smart Detection**: Uses YouTube's Shorts playlist to identify shorts
+
+### Usage Example
+```jsx
+// Frontend usage with isShort property
+function VideoDisplay({ videoData }) {
+  const video = JSON.parse(videoData)
+  
+  return (
+    <div className={video.isShort ? 'short-video' : 'regular-video'}>
+      {video.isShort && <span className="shorts-badge">SHORT</span>}
+      <h3>{video.snippet.title}</h3>
+      {/* ... rest of video display */}
+    </div>
+  )
+}
+```
+
+For detailed information about the YouTube Shorts feature, see [YOUTUBE_SHORTS_FEATURE.md](./YOUTUBE_SHORTS_FEATURE.md).
 
 ## Configuration
 

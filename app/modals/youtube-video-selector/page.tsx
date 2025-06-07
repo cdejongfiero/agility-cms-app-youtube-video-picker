@@ -2,10 +2,11 @@
 import { useAgilityAppSDK, closeModal } from '@agility/app-sdk'
 import { Button } from '@agility/plenum-ui'
 import { useState, useEffect, useMemo } from 'react'
-import { YouTubeVideo } from '../../../types/youtube'
+import { YouTubeVideo, VideoContentFilter } from '../../../types/youtube'
 import { useYouTubeVideos } from '../../../hooks/useYouTubeVideos'
 import { VideoCard } from '../../../components/VideoCard'
 import { SearchAndFilter } from '../../../components/SearchAndFilter'
+import { ContentFilter } from '../../../components/ContentFilter'
 import { LoadingState, EmptyState } from '../../../components/LoadingState'
 import { Video, AlertCircle } from 'lucide-react'
 
@@ -24,6 +25,7 @@ export default function YouTubeVideoSelectorModal() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageTokens, setPageTokens] = useState<string[]>([''])
   const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null)
+  const [contentFilter, setContentFilter] = useState<VideoContentFilter>('all')
 
   const {
     videos,
@@ -42,12 +44,24 @@ export default function YouTubeVideoSelectorModal() {
     maxResults: 12
   })
 
-  // Reset pagination when search or order changes
+  // Apply content filtering
+  const filteredVideos = useMemo(() => {
+    if (contentFilter === 'all') {
+      return videos
+    } else if (contentFilter === 'shorts') {
+      return videos.filter(video => video.isShort === true)
+    } else if (contentFilter === 'videos') {
+      return videos.filter(video => video.isShort !== true)
+    }
+    return videos
+  }, [videos, contentFilter])
+
+  // Reset pagination when search, order, or content filter changes
   useEffect(() => {
     setCurrentPage(1)
     setPageTokens([''])
     setSelectedVideo(null)
-  }, [searchTerm, currentOrder])
+  }, [searchTerm, currentOrder, contentFilter])
 
   const handleVideoSelect = (video: YouTubeVideo) => {
     setSelectedVideo(video)
@@ -111,6 +125,14 @@ export default function YouTubeVideoSelectorModal() {
         placeholder="Search YouTube videos..."
       />
 
+      <div className="px-6 py-3 border-b bg-gray-50 flex items-center justify-between">
+        <div className="text-sm font-medium text-gray-700">Content Type:</div>
+        <ContentFilter
+          selectedFilter={contentFilter}
+          onFilterChange={setContentFilter}
+        />
+      </div>
+
       <div className="flex-1 overflow-y-auto">
         {isLoading && (
           <LoadingState message="Loading YouTube videos..." />
@@ -139,10 +161,18 @@ export default function YouTubeVideoSelectorModal() {
           />
         )}
 
-        {!isLoading && !error && videos.length > 0 && (
+        {!isLoading && !error && videos.length > 0 && filteredVideos.length === 0 && (
+          <EmptyState
+            icon={<Video className="w-16 h-16" />}
+            title="No Videos Match Filter"
+            description={`No ${contentFilter === 'shorts' ? 'YouTube Shorts' : contentFilter === 'videos' ? 'regular videos' : 'videos'} found. Try changing the content filter.`}
+          />
+        )}
+
+        {!isLoading && !error && filteredVideos.length > 0 && (
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {videos.map((video) => (
+              {filteredVideos.map((video) => (
                 <VideoCard
                   key={video.id}
                   video={video}

@@ -102,3 +102,49 @@ export function getWatchUrl(videoId: string): string {
 export function getPlaylistUrl(playlistId: string): string {
   return `https://www.youtube.com/playlist?list=${playlistId}`
 }
+
+/**
+ * Convert a YouTube channel ID to its corresponding Shorts playlist ID
+ * @param channelId YouTube channel ID (starts with UC)
+ * @returns Shorts playlist ID (starts with UUSH)
+ */
+export function getShortsPlaylistId(channelId: string): string {
+  if (!channelId || !channelId.startsWith('UC')) {
+    throw new Error('Invalid channel ID. Must start with "UC"')
+  }
+  return channelId.replace(/^UC/, 'UUSH')
+}
+
+/**
+ * Check if a video is likely a YouTube Short based on duration
+ * Shorts are typically 60 seconds or less
+ * @param duration ISO 8601 duration string
+ * @returns boolean indicating if video is likely a short based on duration
+ */
+export function isLikelyShortByDuration(duration: string): boolean {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+  if (!match) return false
+
+  const hours = parseInt(match[1] || '0')
+  const minutes = parseInt(match[2] || '0')
+  const seconds = parseInt(match[3] || '0')
+
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds
+  return totalSeconds <= 60
+}
+
+/**
+ * Get total duration in seconds from ISO 8601 duration string
+ * @param duration ISO 8601 duration string
+ * @returns Total duration in seconds
+ */
+export function getDurationInSeconds(duration: string): number {
+  const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+  if (!match) return 0
+
+  const hours = parseInt(match[1] || '0')
+  const minutes = parseInt(match[2] || '0')
+  const seconds = parseInt(match[3] || '0')
+
+  return hours * 3600 + minutes * 60 + seconds
+}

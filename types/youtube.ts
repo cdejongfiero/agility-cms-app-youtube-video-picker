@@ -36,6 +36,8 @@ export interface YouTubeVideo {
     favoriteCount: string
     commentCount: string
   }
+  // App-specific properties
+  isShort?: boolean
 }
 
 export interface YouTubePlaylist {
@@ -91,4 +93,11 @@ export interface SelectedPlaylist {
 export interface AppConfiguration {
   apiKey: string
   channelId?: string
+}
+
+// Filter types
+export type VideoContentFilter = 'all' | 'videos' | 'shorts'
+
+export interface VideoFilterOptions {
+  contentFilter: VideoContentFilter
 }
