@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { google } from 'googleapis'
-import { getShortsPlaylistId } from '../../../utils/youtube'
+import { getShortsPlaylistId } from '@/utils/youtube'
 
 /**
  * Check which videos are YouTube Shorts by querying the channel's Shorts playlist
