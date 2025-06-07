@@ -2,20 +2,51 @@
   "name": "YouTube Video Picker App",
   "documentationLink": "https://github.com/your-org/agility-cms-app-youtube-video-picker",
   "description": "YouTube video and playlist picker for Agility CMS with API integration.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "__sdkVersion": "2.0.0",
   "configValues": [
     {
       "name": "apiKey",
       "label": "YouTube API Key",
-      "description": "Your YouTube Data API v3 key",
+      "description": "Your YouTube Data API v3 key from Google Cloud Console",
       "type": "string"
     },
     {
       "name": "channelId",
       "label": "YouTube Channel ID",
-      "description": "Default channel ID to load videos from (optional)",
+      "description": "Default channel ID to load videos from - go to https://www.youtube.com/account_advanced when logged in to your account to copy and paste",
       "type": "string"
+    },
+    {
+      "name": "dataFormat",
+      "label": "Data Format",
+      "description": "Choose how video data is stored in fields",
+      "type": "choice",
+      "choices": [
+        {
+          "value": "simplified",
+          "text": "Simplified (Developer-Friendly Format - Recommended)"
+        },
+        {
+          "value": "legacy",
+          "text": "Legacy (Full YouTube API Response)"
+        }
+      ],
+      "defaultValue": "simplified"
+    },
+    {
+      "name": "includeTags",
+      "label": "Include Video Tags",
+      "description": "Include video tags in simplified format (when available)",
+      "type": "boolean",
+      "defaultValue": true
+    },
+    {
+      "name": "includeDescription",
+      "label": "Include Full Description",
+      "description": "Include full video description (can be lengthy)",
+      "type": "boolean",
+      "defaultValue": true
     }
   ],
   "capabilities": {

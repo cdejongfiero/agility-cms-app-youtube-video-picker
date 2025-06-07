@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
 
       playlists = playlistsResponse.data.items || []
       pageInfo = playlistsResponse.data.pageInfo || {}
-      nextPageToken = playlistsResponse.data.nextPageToken
-      prevPageToken = playlistsResponse.data.prevPageToken
+      nextPageToken = playlistsResponse.data.nextPageToken || undefined
+      prevPageToken = playlistsResponse.data.prevPageToken || undefined
     } else {
       // Use search API when we have a search term or no specific channel
       let searchParams_api: any = {
@@ -94,8 +94,8 @@ export async function GET(request: NextRequest) {
 
       playlists = playlistsResponse.data.items || []
       pageInfo = searchResponse.data.pageInfo
-      nextPageToken = searchResponse.data.nextPageToken
-      prevPageToken = searchResponse.data.prevPageToken
+      nextPageToken = searchResponse.data.nextPageToken || undefined
+      prevPageToken = searchResponse.data.prevPageToken || undefined
     }
 
     return NextResponse.json({

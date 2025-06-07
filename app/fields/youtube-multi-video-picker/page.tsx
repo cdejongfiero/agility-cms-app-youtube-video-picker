@@ -3,24 +3,61 @@ import { useAgilityAppSDK, contentItemMethods, openModal, useResizeHeight } from
 import { Button } from '@agility/plenum-ui'
 import { useEffect, useState } from 'react'
 import { Video, Plus, GripVertical } from 'lucide-react'
-import { YouTubeVideo, AppConfiguration, SelectedVideo } from '../../../types/youtube'
+import { YouTubeVideo, AppConfiguration, SelectedVideo, SimplifiedVideo } from '../../../types/youtube'
 import { VideoCard } from '../../../components/VideoCard'
 import { EmptyState } from '../../../components/LoadingState'
+import { simplifyVideo, getTransformationConfig } from '../../../utils/dataTransformation'
 
 export default function YouTubeMultiVideoPickerField() {
   const { initializing, field, fieldValue, appInstallContext } = useAgilityAppSDK()
   const containerRef = useResizeHeight()
-  const [selectedVideos, setSelectedVideos] = useState<SelectedVideo[]>([])
+  const [selectedVideos, setSelectedVideos] = useState<(SelectedVideo | SimplifiedVideo)[]>([])
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   const config = appInstallContext?.configuration
   const apiKey = config?.apiKey || ''
   const channelId = config?.channelId
+  const transformationConfig = getTransformationConfig(config)
 
-  const updateValue = (videos: SelectedVideo[]) => {
-    const videosJSON = JSON.stringify(videos)
-    contentItemMethods.setFieldValue({ name: field?.name, value: videosJSON })
+  const updateValue = (videos: (SelectedVideo | SimplifiedVideo)[]) => {
+    let videosData = ''
+    
+    if (videos.length > 0) {
+      if (transformationConfig.dataFormat === 'simplified') {
+        // Convert to simplified format
+        const simplifiedVideos = videos.map(item => {
+          if ('video' in item) {
+            // Legacy format with {video, selectedAt} structure
+            return simplifyVideo(item.video, {
+              includeTags: transformationConfig.includeTags,
+              includeDescription: transformationConfig.includeDescription,
+              selectedAt: item.selectedAt
+            })
+          } else {
+            // Already simplified
+            return item
+          }
+        })
+        videosData = JSON.stringify(simplifiedVideos)
+      } else {
+        // Use legacy format
+        const legacyVideos = videos.map(item => {
+          if ('video' in item) {
+            return item // Already in legacy format
+          } else {
+            // Convert simplified back to legacy (shouldn't happen in normal flow)
+            return {
+              video: item,
+              selectedAt: item.selectedAt || new Date().toISOString()
+            }
+          }
+        })
+        videosData = JSON.stringify(legacyVideos)
+      }
+    }
+    
+    contentItemMethods.setFieldValue({ name: field?.name, value: videosData })
     setSelectedVideos(videos)
   }
 
@@ -30,28 +67,52 @@ export default function YouTubeMultiVideoPickerField() {
       return
     }
 
+    // Get current video IDs for "Already Added" detection
+    const currentVideoIds = selectedVideos.map(item => {
+      return 'video' in item ? item.video.id : item.id
+    })
+
     openModal<YouTubeVideo[]>({
       title: 'Choose YouTube Videos',
       name: 'youtube-multi-video-selector',
       props: {
         apiKey,
         channelId,
-        selectedVideoIds: selectedVideos.map(v => v.video.id),
+        selectedVideoIds: currentVideoIds,
       },
       callback: (newVideos) => {
         if (newVideos && newVideos.length > 0) {
-          const newSelectedVideos = newVideos.map(video => ({
-            video,
-            selectedAt: new Date().toISOString(),
-          }))
-          updateValue([...selectedVideos, ...newSelectedVideos])
+          const timestamp = new Date().toISOString()
+          
+          if (transformationConfig.dataFormat === 'simplified') {
+            // Create simplified videos with selectedAt
+            const newSimplifiedVideos = newVideos.map(video => 
+              simplifyVideo(video, {
+                includeTags: transformationConfig.includeTags,
+                includeDescription: transformationConfig.includeDescription,
+                selectedAt: timestamp
+              })
+            )
+            updateValue([...selectedVideos, ...newSimplifiedVideos])
+          } else {
+            // Create legacy format
+            const newSelectedVideos = newVideos.map(video => ({
+              video,
+              selectedAt: timestamp,
+            }))
+            updateValue([...selectedVideos, ...newSelectedVideos])
+          }
         }
       },
     })
   }
 
-  const removeVideo = (videoToRemove: YouTubeVideo) => {
-    const updatedVideos = selectedVideos.filter(v => v.video.id !== videoToRemove.id)
+  const removeVideo = (videoToRemove: YouTubeVideo | SimplifiedVideo) => {
+    const videoIdToRemove = videoToRemove.id
+    const updatedVideos = selectedVideos.filter(item => {
+      const videoId = 'video' in item ? item.video.id : item.id
+      return videoId !== videoIdToRemove
+    })
     updateValue(updatedVideos)
   }
 
@@ -116,13 +177,61 @@ export default function YouTubeMultiVideoPickerField() {
     }
 
     try {
-      const videos = JSON.parse(fieldValue) as SelectedVideo[]
+      const videos = JSON.parse(fieldValue)
+      // Handle both legacy [{video: {...}, selectedAt: ...}] and simplified [...] formats
       setSelectedVideos(Array.isArray(videos) ? videos : [])
     } catch (e) {
       console.error('Error parsing videos JSON:', e)
       setSelectedVideos([])
     }
   }, [fieldValue])
+
+  // Helper function to get video data regardless of format
+  const getVideoData = (item: SelectedVideo | SimplifiedVideo): YouTubeVideo => {
+    if ('video' in item) {
+      // Legacy format
+      return item.video
+    } else {
+      // Simplified format - convert to legacy-like structure for VideoCard compatibility
+      return {
+        id: item.id,
+        snippet: {
+          title: item.title,
+          description: item.description,
+          publishedAt: item.publishedAt,
+          channelId: item.channelId,
+          channelTitle: item.channelTitle,
+          thumbnails: {
+            default: { url: item.thumbnails.small || '', width: 120, height: 90 },
+            medium: { url: item.thumbnails.medium || '', width: 320, height: 180 },
+            high: { url: item.thumbnails.large || '', width: 480, height: 360 }
+          },
+          tags: item.tags || [],
+          categoryId: '0',
+          liveBroadcastContent: 'none',
+          defaultLanguage: undefined,
+          defaultAudioLanguage: undefined
+        },
+        contentDetails: {
+          duration: item.duration,
+          dimension: '2d',
+          definition: 'hd',
+          caption: 'false',
+          licensedContent: false,
+          contentRating: {},
+          projection: 'rectangular'
+        },
+        statistics: {
+          viewCount: item.viewCount.toString(),
+          likeCount: item.likeCount.toString(),
+          dislikeCount: '0',
+          favoriteCount: '0',
+          commentCount: item.commentCount.toString()
+        },
+        isShort: item.isShort
+      } as YouTubeVideo
+    }
+  }
 
   if (initializing) return null
 
@@ -139,6 +248,12 @@ export default function YouTubeMultiVideoPickerField() {
                 <p className="text-sm text-gray-500 mt-1">
                   Drag the grip handles to reorder videos
                 </p>
+                <div className="text-xs text-gray-400 mt-1">
+                  Format: {transformationConfig.dataFormat}
+                  {transformationConfig.dataFormat === 'simplified' && (
+                    <span className="text-green-600 ml-2">✨ Developer-friendly</span>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -161,42 +276,46 @@ export default function YouTubeMultiVideoPickerField() {
             </div>
 
             <div className="space-y-4">
-              {selectedVideos.map((selectedVideo, index) => (
-                <div 
-                  key={selectedVideo.video.id} 
-                  className={`drag-item flex items-center gap-3 p-2 rounded-lg border border-gray-200 ${
-                    draggedIndex === index ? 'dragging' : ''
-                  } ${
-                    dragOverIndex === index ? 'drag-over' : ''
-                  }`}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, index)}
-                  onDragEnd={handleDragEnd}
-                >
-                  {/* Drag Handle */}
-                  <div className="drag-handle flex-shrink-0">
-                    <GripVertical className="w-5 h-5" />
+              {selectedVideos.map((selectedVideoItem, index) => {
+                const videoData = getVideoData(selectedVideoItem)
+                
+                return (
+                  <div 
+                    key={videoData.id} 
+                    className={`drag-item flex items-center gap-3 p-2 rounded-lg border border-gray-200 ${
+                      draggedIndex === index ? 'dragging' : ''
+                    } ${
+                      dragOverIndex === index ? 'drag-over' : ''
+                    }`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    {/* Drag Handle */}
+                    <div className="drag-handle flex-shrink-0">
+                      <GripVertical className="w-5 h-5" />
+                    </div>
+                    
+                    {/* Video Number */}
+                    <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex-shrink-0">
+                      #{index + 1}
+                    </div>
+                    
+                    {/* Video Card */}
+                    <div className="flex-1">
+                      <VideoCard
+                        video={videoData}
+                        onRemove={() => removeVideo(videoData)}
+                        showSelectButton={false}
+                        showRemoveButton={true}
+                      />
+                    </div>
                   </div>
-                  
-                  {/* Video Number */}
-                  <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex-shrink-0">
-                    #{index + 1}
-                  </div>
-                  
-                  {/* Video Card */}
-                  <div className="flex-1">
-                    <VideoCard
-                      video={selectedVideo.video}
-                      onRemove={removeVideo}
-                      showSelectButton={false}
-                      showRemoveButton={true}
-                    />
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         ) : (

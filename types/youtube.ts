@@ -90,9 +90,57 @@ export interface SelectedPlaylist {
   selectedAt: string
 }
 
+// Simplified data structures for developer-friendly usage
+export interface SimplifiedVideo {
+  id: string
+  title: string
+  description: string
+  publishedAt: string
+  duration: string
+  durationFormatted: string
+  durationSeconds: number
+  channelTitle: string
+  channelId: string
+  viewCount: number
+  viewCountFormatted: string
+  likeCount: number
+  commentCount: number
+  thumbnailUrl: string
+  thumbnails: {
+    small?: string
+    medium?: string
+    large?: string
+  }
+  embedUrl: string
+  watchUrl: string
+  isShort: boolean
+  tags?: string[]
+  selectedAt?: string
+}
+
+export interface SimplifiedPlaylist {
+  id: string
+  title: string
+  description: string
+  publishedAt: string
+  channelTitle: string
+  channelId: string
+  videoCount: number
+  thumbnailUrl: string
+  thumbnails: {
+    small?: string
+    medium?: string
+    large?: string
+  }
+  playlistUrl: string
+}
+
 export interface AppConfiguration {
   apiKey: string
   channelId?: string
+  dataFormat?: 'simplified' | 'legacy'
+  includeTags?: boolean
+  includeDescription?: boolean
 }
 
 // Filter types

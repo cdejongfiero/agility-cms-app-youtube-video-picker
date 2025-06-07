@@ -23,11 +23,14 @@ agility-cms-app-youtube-video-picker/
 ## Features
 
 - **Single Video Picker**: Select individual YouTube videos with rich metadata
-- **Multiple Video Picker**: Curate collections of YouTube videos  
+- **Multiple Video Picker**: Curate collections of YouTube videos with drag-and-drop reordering  
 - **Playlist Picker**: Select YouTube playlists with full metadata
 - **YouTube Shorts Detection**: Automatically detect and filter YouTube Shorts vs regular videos
+- **Simplified Data Format**: Developer-friendly JSON structure (default) with pre-computed values
 - YouTube API v3 integration with search and pagination
 - Rich video previews with thumbnails, duration, view counts, etc.
+- Visual indicators for YouTube Shorts with red "SHORT" badges
+- Content filtering by "All", "Videos", or "Shorts"
 - Complete JSON data storage for maximum frontend flexibility
 - Responsive, modern interface
 
@@ -111,113 +114,207 @@ Add any of the three field types to your content models:
 
 ### Single Video Field
 
-Stores complete YouTube video JSON:
+Stores complete YouTube video data in simplified format:
 
 ```json
 {
   "id": "dQw4w9WgXcQ",
-  "snippet": {
-    "title": "Video Title",
-    "description": "Video description...",
-    "thumbnails": {
-      "default": { "url": "...", "width": 120, "height": 90 },
-      "medium": { "url": "...", "width": 320, "height": 180 },
-      "high": { "url": "...", "width": 480, "height": 360 }
-    },
-    "channelTitle": "Channel Name",
-    "publishedAt": "2023-01-01T00:00:00Z"
+  "title": "Never Gonna Give You Up",
+  "description": "Rick Astley's official music video...",
+  "publishedAt": "2009-10-25T06:57:33Z",
+  "duration": "PT3M33S",
+  "durationFormatted": "3:33",
+  "durationSeconds": 213,
+  "channelTitle": "Rick Astley",
+  "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
+  "viewCount": 1500000000,
+  "viewCountFormatted": "1.5B",
+  "likeCount": 15000000,
+  "commentCount": 2800000,
+  "thumbnailUrl": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+  "thumbnails": {
+    "small": "https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg",
+    "medium": "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
+    "large": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
   },
-  "contentDetails": {
-    "duration": "PT3M30S"
-  },
-  "statistics": {
-    "viewCount": "1000000",
-    "likeCount": "50000"
-  },
-  "isShort": false
+  "embedUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+  "watchUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "isShort": false,
+  "tags": ["rick astley", "never gonna give you up", "80s"]
 }
 ```
 
 ### Multiple Videos Field
 
-Stores array of selected videos with timestamps:
+Stores array of selected videos in simplified format:
 
 ```json
 [
   {
-    "video": { /* YouTube video object */ },
-    "selectedAt": "2023-01-01T12:00:00Z"
+    "id": "dQw4w9WgXcQ",
+    "title": "Never Gonna Give You Up",
+    "durationFormatted": "3:33",
+    "viewCountFormatted": "1.5B",
+    "thumbnailUrl": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+    "embedUrl": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "isShort": false,
+    "selectedAt": "2025-06-07T19:25:51.643Z"
+    // ... other video properties
   }
 ]
 ```
 
 ### Playlist Field
 
-Stores complete YouTube playlist JSON:
+Stores simplified YouTube playlist data:
 
 ```json
 {
-  "id": "PLx1A2...",
-  "snippet": {
-    "title": "Playlist Title",
-    "description": "Playlist description...",
-    "thumbnails": { /* thumbnail objects */ },
-    "channelTitle": "Channel Name"
+  "id": "PLrAXtmRdnEQy",
+  "title": "Greatest Hits Collection",
+  "description": "The best songs from the 80s...",
+  "publishedAt": "2020-01-15T10:30:00Z",
+  "channelTitle": "Music Channel",
+  "channelId": "UCexample123",
+  "videoCount": 25,
+  "thumbnailUrl": "https://i.ytimg.com/vi/example/hqdefault.jpg",
+  "thumbnails": {
+    "small": "https://i.ytimg.com/vi/example/default.jpg",
+    "medium": "https://i.ytimg.com/vi/example/mqdefault.jpg",
+    "large": "https://i.ytimg.com/vi/example/hqdefault.jpg"
   },
-  "contentDetails": {
-    "itemCount": 25
-  }
+  "playlistUrl": "https://www.youtube.com/playlist?list=PLrAXtmRdnEQy"
 }
 ```
 
 ## Frontend Usage
 
-### React Example
+### React Hook Examples (Recommended)
 
 ```jsx
-import { formatDuration, formatCount, getEmbedUrl } from './utils/youtube'
+import { useYouTubeVideo, useYouTubeVideos, useYouTubePlaylist } from 'agility-cms-app-youtube-video-picker'
 
-function VideoPlayer({ videoData }) {
-  if (!videoData) return null
+// Single Video
+function VideoPlayer({ videoFieldValue }) {
+  const video = useYouTubeVideo(videoFieldValue)
   
-  const video = typeof videoData === 'string' ? JSON.parse(videoData) : videoData
+  if (!video) return null
   
   return (
-    <div>
+    <div className="video-player">
       <iframe 
-        src={getEmbedUrl(video.id)}
+        src={video.embedUrl}
+        title={video.title}
         width="560" 
         height="315"
-        frameBorder="0"
-        allowFullScreen
       />
-      <h3>{video.snippet.title}</h3>
-      <p>{video.snippet.description}</p>
-      <div>
-        <span>Duration: {formatDuration(video.contentDetails.duration)}</span>
-        <span>Views: {formatCount(video.statistics.viewCount)}</span>
+      <h3>{video.title}</h3>
+      <div className="video-meta">
+        <span>{video.viewCountFormatted} views</span>
+        <span>{video.durationFormatted}</span>
+        {video.isShort && <span className="short-badge">SHORT</span>}
       </div>
+    </div>
+  )
+}
+
+// Multiple Videos
+function VideoGallery({ videosFieldValue }) {
+  const videos = useYouTubeVideos(videosFieldValue)
+  
+  // Separate regular videos and shorts
+  const regularVideos = videos.filter(v => !v.isShort)
+  const shorts = videos.filter(v => v.isShort)
+  
+  return (
+    <div className="video-gallery">
+      {regularVideos.length > 0 && (
+        <section>
+          <h2>Featured Videos</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {regularVideos.map(video => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+        </section>
+      )}
+      
+      {shorts.length > 0 && (
+        <section>
+          <h2>YouTube Shorts</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {shorts.map(video => (
+              <ShortCard key={video.id} video={video} />
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+// Playlist
+function PlaylistCard({ playlistFieldValue }) {
+  const playlist = useYouTubePlaylist(playlistFieldValue)
+  
+  if (!playlist) return null
+  
+  return (
+    <div className="playlist-card">
+      <img src={playlist.thumbnailUrl} alt={playlist.title} />
+      <h3>{playlist.title}</h3>
+      <p>{playlist.videoCount} videos</p>
+      <a href={playlist.playlistUrl}>View Playlist</a>
     </div>
   )
 }
 ```
 
-### Next.js Example
+### Direct JSON Usage
 
 ```jsx
-function VideoCollection({ videosData }) {
-  const videos = typeof videosData === 'string' ? JSON.parse(videosData) : videosData
+// Single Video
+function VideoPlayer({ videoFieldValue }) {
+  if (!videoFieldValue) return null
+  
+  const video = JSON.parse(videoFieldValue)
+  
+  return (
+    <div>
+      <iframe 
+        src={video.embedUrl}
+        title={video.title}
+        width="560" 
+        height="315"
+      />
+      <h3>{video.title}</h3>
+      <div>
+        <span>Views: {video.viewCountFormatted}</span>
+        <span>Duration: {video.durationFormatted}</span>
+      </div>
+    </div>
+  )
+}
+
+// Multiple Videos
+function VideoCollection({ videosFieldValue }) {
+  const videos = JSON.parse(videosFieldValue)
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {videos.map(({ video }) => (
+      {videos.map((video) => (
         <div key={video.id} className="video-card">
           <img 
-            src={video.snippet.thumbnails.medium.url} 
-            alt={video.snippet.title}
+            src={video.thumbnailUrl} 
+            alt={video.title}
           />
-          <h4>{video.snippet.title}</h4>
-          <p>{video.snippet.description}</p>
+          <h4>{video.title}</h4>
+          <p>{video.description}</p>
+          <div className="metadata">
+            <span>{video.viewCountFormatted} views</span>
+            <span>{video.channelTitle}</span>
+            {video.isShort && <span className="short-badge">SHORT</span>}
+          </div>
         </div>
       ))}
     </div>
@@ -244,9 +341,32 @@ The app includes utility functions for common YouTube data formatting:
 - `getShortsPlaylistId(channelId)` - Convert channel ID to shorts playlist ID
 - `isLikelyShortByDuration(duration)` - Check if video is likely a short by duration
 
+## React Hooks
+
+The app provides React hooks for easy data consumption:
+
+- `useYouTubeVideo(fieldValue)` - Parse and normalize single video data
+- `useYouTubeVideos(fieldValue)` - Parse and normalize multi-video data
+- `useYouTubePlaylist(fieldValue)` - Parse and normalize playlist data
+
+**Example Usage:**
+```jsx
+import { useYouTubeVideo } from 'agility-cms-app-youtube-video-picker'
+
+function VideoComponent({ fieldValue }) {
+  const video = useYouTubeVideo(fieldValue)
+  return <div>{video?.title}</div>
+}
+```
+
+These hooks automatically handle both simplified and legacy data formats.
+
 ## YouTube Shorts Detection
 
 The app automatically detects YouTube Shorts and provides filtering capabilities:
+
+### Detection Method
+Shorts are detected by checking if videos exist in the channel's Shorts playlist (converts channel ID from `UC...` to `UUSH...` format). This method provides accurate detection as YouTube maintains these playlists automatically.
 
 ### Features
 - **Visual Indicators**: Shorts display a red "SHORT" badge
@@ -263,14 +383,33 @@ function VideoDisplay({ videoData }) {
   return (
     <div className={video.isShort ? 'short-video' : 'regular-video'}>
       {video.isShort && <span className="shorts-badge">SHORT</span>}
-      <h3>{video.snippet.title}</h3>
-      {/* ... rest of video display */}
+      <h3>{video.title}</h3>
+      <div className="metadata">
+        <span>{video.viewCountFormatted} views</span>
+        <span>{video.durationFormatted}</span>
+      </div>
     </div>
   )
 }
 ```
 
-For detailed information about the YouTube Shorts feature, see [YOUTUBE_SHORTS_FEATURE.md](./YOUTUBE_SHORTS_FEATURE.md).
+
+## Data Format Options
+
+The app offers two data format options:
+
+### **Simplified Format (Default)**
+- Clean, developer-friendly structure
+- Pre-computed values (formatted counts, durations, URLs)
+- Consistent property names across all fields
+- 60-70% smaller JSON payload
+- Direct property access (no nested objects)
+
+### **Legacy Format**
+- Full YouTube API response structure
+- Compatible with version 1.0.x implementations
+- More verbose but complete metadata
+
 
 ## Configuration
 
@@ -279,6 +418,9 @@ For detailed information about the YouTube Shorts feature, see [YOUTUBE_SHORTS_F
 
 ### Optional  
 - **Channel ID**: Default channel to load videos from (can be overridden in search)
+- **Data Format**: Choose between simplified (recommended) or legacy format
+- **Include Video Tags**: Include video tags in simplified format (default: true)
+- **Include Full Description**: Include complete video descriptions (default: true)
 
 ## Troubleshooting
 

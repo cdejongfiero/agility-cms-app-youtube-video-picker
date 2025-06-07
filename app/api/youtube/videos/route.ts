@@ -22,12 +22,12 @@ async function detectShorts(youtube: any, videos: any[]): Promise<any[]> {
     }
 
     // Check each channel's shorts
-    for (const [channelId, channelVideos] of videosByChannel) {
+    for (const [channelId, channelVideos] of Array.from(videosByChannel.entries())) {
       try {
         // Convert channel ID to shorts playlist ID
         if (!channelId || !channelId.startsWith('UC')) {
           // If we can't get the shorts playlist ID, mark all as regular videos
-          channelVideos.forEach(video => {
+          channelVideos.forEach((video: any) => {
             video.isShort = false
           })
           continue
@@ -56,7 +56,7 @@ async function detectShorts(youtube: any, videos: any[]): Promise<any[]> {
       } catch (channelError: any) {
         // If there's an error with this channel, mark all its videos as regular videos
         console.warn(`Failed to check shorts for channel ${channelId}:`, channelError.message)
-        channelVideos.forEach(video => {
+        channelVideos.forEach((video: any) => {
           video.isShort = false
         })
       }
