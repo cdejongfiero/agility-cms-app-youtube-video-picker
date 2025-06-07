@@ -22,63 +22,87 @@ export async function GET(request: NextRequest) {
       auth: apiKey,
     })
 
-    let searchParams_api: any = {
-      part: ['snippet'],
-      maxResults,
-      type: ['playlist'],
-    }
+    let playlists: any[] = []
+    let pageInfo: any = {}
+    let nextPageToken: string | undefined
+    let prevPageToken: string | undefined
 
-    if (pageToken) {
-      searchParams_api.pageToken = pageToken
-    }
-
-    // If we have a search term, use it
-    if (search) {
-      searchParams_api.q = search
-    }
-
-    // If we have a channelId, filter by it
-    if (channelId) {
-      searchParams_api.channelId = channelId
-    }
-
-    // Get search results for playlists
-    const searchResponse = await youtube.search.list(searchParams_api)
-    
-    if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
-      return NextResponse.json({
-        playlists: [],
-        pageInfo: searchResponse.data.pageInfo,
-        nextPageToken: null,
+    if (channelId && !search) {
+      // If we have a channelId and no search term, get playlists directly from the channel
+      const playlistsResponse = await youtube.playlists.list({
+        part: ['snippet', 'contentDetails'],
+        channelId: channelId,
+        maxResults,
+        pageToken: pageToken || undefined,
       })
-    }
 
-    // Get playlist IDs for detailed information
-    const playlistIds = searchResponse.data.items
-      .map(item => item.id?.playlistId)
-      .filter((id): id is string => Boolean(id))
+      playlists = playlistsResponse.data.items || []
+      pageInfo = playlistsResponse.data.pageInfo || {}
+      nextPageToken = playlistsResponse.data.nextPageToken
+      prevPageToken = playlistsResponse.data.prevPageToken
+    } else {
+      // Use search API when we have a search term or no specific channel
+      let searchParams_api: any = {
+        part: ['snippet'],
+        maxResults,
+        type: ['playlist'],
+      }
 
-    if (playlistIds.length === 0) {
-      return NextResponse.json({
-        playlists: [],
-        pageInfo: searchResponse.data.pageInfo,
-        nextPageToken: searchResponse.data.nextPageToken,
+      if (pageToken) {
+        searchParams_api.pageToken = pageToken
+      }
+
+      // If we have a search term, use it
+      if (search) {
+        searchParams_api.q = search
+      }
+
+      // If we have a channelId, filter by it
+      if (channelId) {
+        searchParams_api.channelId = channelId
+      }
+
+      // Get search results for playlists
+      const searchResponse = await youtube.search.list(searchParams_api)
+      
+      if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
+        return NextResponse.json({
+          playlists: [],
+          pageInfo: searchResponse.data.pageInfo,
+          nextPageToken: null,
+        })
+      }
+
+      // Get playlist IDs for detailed information
+      const playlistIds = searchResponse.data.items
+        .map(item => item.id?.playlistId)
+        .filter((id): id is string => Boolean(id))
+
+      if (playlistIds.length === 0) {
+        return NextResponse.json({
+          playlists: [],
+          pageInfo: searchResponse.data.pageInfo,
+          nextPageToken: searchResponse.data.nextPageToken,
+        })
+      }
+
+      // Get detailed playlist information
+      const playlistsResponse = await youtube.playlists.list({
+        part: ['snippet', 'contentDetails'],
+        id: playlistIds,
       })
+
+      playlists = playlistsResponse.data.items || []
+      pageInfo = searchResponse.data.pageInfo
+      nextPageToken = searchResponse.data.nextPageToken
+      prevPageToken = searchResponse.data.prevPageToken
     }
-
-    // Get detailed playlist information
-    const playlistsResponse = await youtube.playlists.list({
-      part: ['snippet', 'contentDetails'],
-      id: playlistIds,
-    })
-
-    const playlists = playlistsResponse.data.items || []
 
     return NextResponse.json({
       playlists,
-      pageInfo: searchResponse.data.pageInfo,
-      nextPageToken: searchResponse.data.nextPageToken,
-      prevPageToken: searchResponse.data.prevPageToken,
+      pageInfo,
+      nextPageToken,
+      prevPageToken,
     })
   } catch (error: any) {
     console.error('YouTube Playlists API Error:', error)
