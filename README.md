@@ -1,7 +1,7 @@
 # Agility CMS YouTube Video Picker App
 
 This app provides YouTube video and playlist picker fields for Agility CMS with full YouTube API v3 integration.
-
+```
 agility-cms-app-youtube-video-picker/
 ├── app/
 │   ├── api/youtube/          # YouTube API routes
@@ -18,7 +18,7 @@ agility-cms-app-youtube-video-picker/
 ├── types/                    # TypeScript definitions
 ├── utils/                    # Utility functions
 └── public/.well-known/       # App registration
-
+```
 
 ## Features
 
@@ -32,29 +32,27 @@ agility-cms-app-youtube-video-picker/
 
 ## Core Functionality
 
-Core Functionality:
+- ✅ YouTube API v3 integration with search and pagination
+- ✅ Rich video previews with thumbnails, duration, view counts, likes
+- ✅ Advanced search and filtering (by relevance, date, popularity)
+- ✅ Complete JSON data storage for frontend flexibility
+- ✅ Responsive, modern interface with loading states
+- ✅ Comprehensive error handling
+- ✅ App installation screen with API key configuration
 
-✅ YouTube API v3 integration with search and pagination
-✅ Rich video previews with thumbnails, duration, view counts, likes
-✅ Advanced search and filtering (by relevance, date, popularity)
-✅ Complete JSON data storage for frontend flexibility
-✅ Responsive, modern interface with loading states
-✅ Comprehensive error handling
-✅ App installation screen with API key configuration
+### Additional Features:
 
-Additional Features:
-
-✅ Utility functions for duration formatting, count formatting, URL generation
-✅ Validation utilities for YouTube IDs and data structures
-✅ TypeScript support throughout
-✅ Comprehensive documentation and testing guide
+- ✅ Utility functions for duration formatting, count formatting, URL generation
+- ✅ Validation utilities for YouTube IDs and data structures
+- ✅ TypeScript support throughout
+- ✅ Comprehensive documentation and testing guide
 
 ## Installation & Setup
 
 ### 1. Install Dependencies
 
 ```bash
-npm install
+npm install --legacy-peer-deps
 ```
 
 ### 2. Configure YouTube API
