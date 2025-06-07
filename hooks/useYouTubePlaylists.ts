@@ -28,7 +28,7 @@ export function useYouTubePlaylists({
   apiKey,
   channelId,
   search = '',
-  maxResults = 25,
+  maxResults = 50,
   pageToken = ''
 }: UseYouTubePlaylistsProps) {
   const params = new URLSearchParams({

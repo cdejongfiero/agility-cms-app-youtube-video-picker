@@ -35,24 +35,36 @@ async function detectShorts(youtube: any, videos: any[]): Promise<any[]> {
 
         const shortsPlaylistId = getShortsPlaylistId(channelId)
         
-        // Check each video to see if it's in the shorts playlist
-        for (const video of channelVideos) {
-          try {
-            const playlistResponse = await youtube.playlistItems.list({
-              part: ['id', 'snippet', 'contentDetails'],
-              playlistId: shortsPlaylistId,
-              videoId: video.id,
-              maxResults: 1
-            })
-            
-            // If the video is found in the shorts playlist, it's a short
-            video.isShort = playlistResponse.data.items && playlistResponse.data.items.length > 0
-          } catch (videoError: any) {
-            // If there's an error checking this specific video, assume it's not a short
-            console.warn(`Failed to check if video ${video.id} is a short:`, videoError.message)
-            video.isShort = false
+        // Fetch ALL shorts from the channel's shorts playlist
+        const allShorts = new Set<string>()
+        let pageToken = ''
+        
+        do {
+          const shortsResponse = await youtube.playlistItems.list({
+            part: ['snippet'],
+            playlistId: shortsPlaylistId,
+            maxResults: 50,
+            pageToken: pageToken || undefined
+          })
+          
+          // Add all shorts video IDs to our set
+          if (shortsResponse.data.items) {
+          shortsResponse.data.items.forEach((item: any) => {
+          const videoId = item.snippet?.resourceId?.videoId
+          if (videoId) {
+          allShorts.add(videoId)
           }
-        }
+          })
+          }
+          
+          pageToken = shortsResponse.data.nextPageToken || ''
+        } while (pageToken)
+        
+        // Mark videos as shorts based on whether they're in the shorts playlist
+        channelVideos.forEach((video: any) => {
+          video.isShort = allShorts.has(video.id)
+        })
+        
       } catch (channelError: any) {
         // If there's an error with this channel, mark all its videos as regular videos
         console.warn(`Failed to check shorts for channel ${channelId}:`, channelError.message)
@@ -66,8 +78,180 @@ async function detectShorts(youtube: any, videos: any[]): Promise<any[]> {
   } catch (error: any) {
     console.warn('Failed to detect shorts, marking all as regular videos:', error.message)
     // If shorts detection fails entirely, mark all videos as regular videos
-    return videos.map(video => ({ ...video, isShort: false }))
+    return videos.map((video: any) => ({ ...video, isShort: false }))
   }
+}
+
+/**
+ * Handle shorts-only queries by fetching from the channel's shorts playlist
+ */
+async function handleShortsQuery(
+  youtube: any, 
+  channelId: string | null, 
+  search: string, 
+  maxResults: number, 
+  pageToken: string
+) {
+  if (!channelId || !channelId.startsWith('UC')) {
+    return NextResponse.json({
+      videos: [],
+      pageInfo: { totalResults: 0, resultsPerPage: 0 },
+      nextPageToken: null,
+      prevPageToken: null,
+    })
+  }
+
+  try {
+    const shortsPlaylistId = getShortsPlaylistId(channelId)
+    
+    // Get shorts from playlist
+    const playlistResponse = await youtube.playlistItems.list({
+      part: ['snippet'],
+      playlistId: shortsPlaylistId,
+      maxResults,
+      pageToken: pageToken || undefined
+    })
+
+    if (!playlistResponse.data.items || playlistResponse.data.items.length === 0) {
+      return NextResponse.json({
+        videos: [],
+        pageInfo: playlistResponse.data.pageInfo || { totalResults: 0, resultsPerPage: 0 },
+        nextPageToken: null,
+        prevPageToken: null,
+      })
+    }
+
+    // Extract video IDs from playlist items
+    const videoIds = playlistResponse.data.items
+      .map((item: any) => item.snippet?.resourceId?.videoId)
+      .filter((id: any): id is string => Boolean(id))
+
+    if (videoIds.length === 0) {
+      return NextResponse.json({
+        videos: [],
+        pageInfo: playlistResponse.data.pageInfo || { totalResults: 0, resultsPerPage: 0 },
+        nextPageToken: playlistResponse.data.nextPageToken,
+        prevPageToken: playlistResponse.data.prevPageToken,
+      })
+    }
+
+    // Get detailed video information
+    const videosResponse = await youtube.videos.list({
+      part: ['snippet', 'contentDetails', 'statistics'],
+      id: videoIds.join(','),
+    })
+
+    let videos = videosResponse.data.items || []
+    
+    // Mark all as shorts and apply search filter if needed
+    videos = videos.map((video: any) => ({ ...video, isShort: true }))
+    
+    // Apply search filter client-side for shorts (since we can't search the playlist API)
+    if (search) {
+      const searchLower = search.toLowerCase()
+      videos = videos.filter((video: any) => 
+        video.snippet.title.toLowerCase().includes(searchLower) ||
+        video.snippet.description.toLowerCase().includes(searchLower)
+      )
+    }
+
+    return NextResponse.json({
+      videos,
+      pageInfo: playlistResponse.data.pageInfo,
+      nextPageToken: playlistResponse.data.nextPageToken,
+      prevPageToken: playlistResponse.data.prevPageToken,
+    })
+  } catch (error: any) {
+    console.error('Error fetching shorts:', error)
+    return NextResponse.json({
+      videos: [],
+      pageInfo: { totalResults: 0, resultsPerPage: 0 },
+      nextPageToken: null,
+      prevPageToken: null,
+    })
+  }
+}
+
+/**
+ * Handle regular video queries (all videos or videos-only)
+ */
+async function handleVideosQuery(
+  youtube: any,
+  channelId: string | null,
+  search: string,
+  maxResults: number,
+  pageToken: string,
+  order: string,
+  contentFilter: string
+) {
+  let searchParams_api: any = {
+    part: ['snippet'],
+    maxResults,
+    order,
+    type: ['video'],
+    safeSearch: 'none',
+  }
+
+  if (pageToken) {
+    searchParams_api.pageToken = pageToken
+  }
+
+  // If we have a search term, use it
+  if (search) {
+    searchParams_api.q = search
+  }
+
+  // If we have a channelId, filter by it
+  if (channelId) {
+    searchParams_api.channelId = channelId
+  }
+
+  // Get search results
+  const searchResponse = await youtube.search.list(searchParams_api)
+  
+  if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
+    return NextResponse.json({
+      videos: [],
+      pageInfo: searchResponse.data.pageInfo,
+      nextPageToken: null,
+    })
+  }
+
+  // Get video IDs for detailed information
+  const videoIds = searchResponse.data.items
+    .map((item: any) => item.id?.videoId)
+    .filter((id: any): id is string => Boolean(id))
+
+  if (videoIds.length === 0) {
+    return NextResponse.json({
+      videos: [],
+      pageInfo: searchResponse.data.pageInfo,
+      nextPageToken: searchResponse.data.nextPageToken,
+    })
+  }
+
+  // Get detailed video information
+  const videosResponse = await youtube.videos.list({
+    part: ['snippet', 'contentDetails', 'statistics'],
+    id: videoIds,
+  })
+
+  let videos = videosResponse.data.items || []
+
+  // Detect which videos are YouTube Shorts
+  videos = await detectShorts(youtube, videos)
+
+  // If contentFilter is 'videos', filter out shorts
+  if (contentFilter === 'videos') {
+    videos = videos.filter((video: any) => !video.isShort)
+  }
+
+  return NextResponse.json({
+    videos,
+    pageInfo: searchResponse.data.pageInfo,
+    nextPageToken: searchResponse.data.nextPageToken,
+    prevPageToken: searchResponse.data.prevPageToken,
+  })
 }
 
 export async function GET(request: NextRequest) {
@@ -76,9 +260,10 @@ export async function GET(request: NextRequest) {
     const apiKey = request.headers.get('x-youtube-api-key')
     const channelId = searchParams.get('channelId')
     const search = searchParams.get('search') || ''
-    const maxResults = parseInt(searchParams.get('maxResults') || '25')
+    const maxResults = parseInt(searchParams.get('maxResults') || '50')
     const pageToken = searchParams.get('pageToken') || ''
-    const order = searchParams.get('order') || 'date'
+    const order = searchParams.get('order') || 'title'
+    const contentFilter = searchParams.get('contentFilter') || 'all' // all, videos, shorts
 
     if (!apiKey) {
       return NextResponse.json(
@@ -92,69 +277,14 @@ export async function GET(request: NextRequest) {
       auth: apiKey,
     })
 
-    let searchParams_api: any = {
-      part: ['snippet'],
-      maxResults,
-      order,
-      type: ['video'],
-      safeSearch: 'none',
+    // Handle different content filters
+    if (contentFilter === 'shorts') {
+      // Query shorts playlist directly
+      return await handleShortsQuery(youtube, channelId, search, maxResults, pageToken)
+    } else {
+      // Query regular videos (and filter out shorts if contentFilter === 'videos')
+      return await handleVideosQuery(youtube, channelId, search, maxResults, pageToken, order, contentFilter)
     }
-
-    if (pageToken) {
-      searchParams_api.pageToken = pageToken
-    }
-
-    // If we have a search term, use it
-    if (search) {
-      searchParams_api.q = search
-    }
-
-    // If we have a channelId, filter by it
-    if (channelId) {
-      searchParams_api.channelId = channelId
-    }
-
-    // Get search results
-    const searchResponse = await youtube.search.list(searchParams_api)
-    
-    if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
-      return NextResponse.json({
-        videos: [],
-        pageInfo: searchResponse.data.pageInfo,
-        nextPageToken: null,
-      })
-    }
-
-    // Get video IDs for detailed information
-    const videoIds = searchResponse.data.items
-      .map(item => item.id?.videoId)
-      .filter((id): id is string => Boolean(id))
-
-    if (videoIds.length === 0) {
-      return NextResponse.json({
-        videos: [],
-        pageInfo: searchResponse.data.pageInfo,
-        nextPageToken: searchResponse.data.nextPageToken,
-      })
-    }
-
-    // Get detailed video information
-    const videosResponse = await youtube.videos.list({
-      part: ['snippet', 'contentDetails', 'statistics'],
-      id: videoIds,
-    })
-
-    let videos = videosResponse.data.items || []
-
-    // Detect which videos are YouTube Shorts
-    videos = await detectShorts(youtube, videos)
-
-    return NextResponse.json({
-      videos,
-      pageInfo: searchResponse.data.pageInfo,
-      nextPageToken: searchResponse.data.nextPageToken,
-      prevPageToken: searchResponse.data.prevPageToken,
-    })
   } catch (error: any) {
     console.error('YouTube API Error:', error)
     

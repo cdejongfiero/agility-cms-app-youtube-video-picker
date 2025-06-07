@@ -6,7 +6,6 @@ import { YouTubeVideo, VideoContentFilter } from '../../../types/youtube'
 import { useYouTubeVideos } from '../../../hooks/useYouTubeVideos'
 import { VideoCard } from '../../../components/VideoCard'
 import { SearchAndFilter } from '../../../components/SearchAndFilter'
-import { ContentFilter } from '../../../components/ContentFilter'
 import { LoadingState, EmptyState } from '../../../components/LoadingState'
 import { Video, AlertCircle, Check, X } from 'lucide-react'
 
@@ -22,7 +21,7 @@ export default function YouTubeMultiVideoSelectorModal() {
   const { apiKey = '', channelId, selectedVideoIds = [] } = props
   
   const [searchTerm, setSearchTerm] = useState('')
-  const [currentOrder, setCurrentOrder] = useState('date')
+  const [currentOrder, setCurrentOrder] = useState('title')
   const [currentPage, setCurrentPage] = useState(1)
   const [pageTokens, setPageTokens] = useState<string[]>([''])
   const [selectedVideos, setSelectedVideos] = useState<Map<string, YouTubeVideo>>(new Map())
@@ -42,20 +41,9 @@ export default function YouTubeMultiVideoSelectorModal() {
     search: searchTerm,
     order: currentOrder as any,
     pageToken: pageTokens[currentPage - 1] || '',
-    maxResults: 12
+    maxResults: 50,
+    contentFilter
   })
-
-  // Apply content filtering
-  const filteredVideos = useMemo(() => {
-    if (contentFilter === 'all') {
-      return videos
-    } else if (contentFilter === 'shorts') {
-      return videos.filter(video => video.isShort === true)
-    } else if (contentFilter === 'videos') {
-      return videos.filter(video => video.isShort !== true)
-    }
-    return videos
-  }, [videos, contentFilter])
 
   // Reset pagination when search, order, or content filter changes
   useEffect(() => {
@@ -136,15 +124,10 @@ export default function YouTubeMultiVideoSelectorModal() {
         onPrevPage={handlePrevPage}
         onNextPage={handleNextPage}
         placeholder="Search YouTube videos..."
+        contentFilter={contentFilter}
+        onContentFilterChange={setContentFilter}
+        showContentFilter={true}
       />
-
-      <div className="px-6 py-3 border-b bg-gray-50 flex items-center justify-between">
-        <div className="text-sm font-medium text-gray-700">Content Type:</div>
-        <ContentFilter
-          selectedFilter={contentFilter}
-          onFilterChange={setContentFilter}
-        />
-      </div>
 
       {selectedCount > 0 && (
         <div className="bg-blue-50 border-b border-blue-200 px-6 py-3 flex items-center justify-between">
@@ -192,18 +175,10 @@ export default function YouTubeMultiVideoSelectorModal() {
           />
         )}
 
-        {!isLoading && !error && videos.length > 0 && filteredVideos.length === 0 && (
-          <EmptyState
-            icon={<Video className="w-16 h-16" />}
-            title="No Videos Match Filter"
-            description={`No ${contentFilter === 'shorts' ? 'YouTube Shorts' : contentFilter === 'videos' ? 'regular videos' : 'videos'} found. Try changing the content filter.`}
-          />
-        )}
-
-        {!isLoading && !error && filteredVideos.length > 0 && (
+        {!isLoading && !error && videos.length > 0 && (
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredVideos.map((video) => {
+              {videos.map((video) => {
                 const isSelected = selectedVideos.has(video.id)
                 const isAlreadyAdded = selectedVideoIds.includes(video.id)
                 

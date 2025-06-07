@@ -37,7 +37,7 @@ export default function YouTubePlaylistSelectorModal() {
     channelId,
     search: searchTerm,
     pageToken: pageTokens[currentPage - 1] || '',
-    maxResults: 12
+    maxResults: 50
   })
 
   // Reset pagination when search changes

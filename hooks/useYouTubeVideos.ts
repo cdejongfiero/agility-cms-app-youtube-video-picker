@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { YouTubeSearchResponse } from '../types/youtube'
+import { YouTubeSearchResponse, VideoContentFilter } from '../types/youtube'
 
 interface UseYouTubeVideosProps {
   apiKey: string
@@ -8,6 +8,7 @@ interface UseYouTubeVideosProps {
   maxResults?: number
   pageToken?: string
   order?: 'date' | 'rating' | 'relevance' | 'title' | 'viewCount'
+  contentFilter?: VideoContentFilter
 }
 
 const fetcher = async (url: string, apiKey: string): Promise<YouTubeSearchResponse> => {
@@ -29,13 +30,15 @@ export function useYouTubeVideos({
   apiKey,
   channelId,
   search = '',
-  maxResults = 25,
+  maxResults = 50,
   pageToken = '',
-  order = 'date'
+  order = 'title',
+  contentFilter = 'all'
 }: UseYouTubeVideosProps) {
   const params = new URLSearchParams({
     maxResults: maxResults.toString(),
     order,
+    contentFilter,
   })
 
   if (channelId) params.append('channelId', channelId)
