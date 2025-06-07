@@ -418,9 +418,17 @@ The app offers two data format options:
 
 ### Optional  
 - **Channel ID**: Default channel to load videos from (can be overridden in search)
-- **Data Format**: Choose between simplified (recommended) or legacy format
-- **Include Video Tags**: Include video tags in simplified format (default: true)
-- **Include Full Description**: Include complete video descriptions (default: true)
+
+### Self-Hosted Customization
+The app uses the simplified data format by default. If you clone and deploy this app yourself and need the legacy format, modify the `getTransformationConfig` function in `/utils/dataTransformation.ts`:
+
+```typescript
+// Change from:
+dataFormat: 'simplified'
+
+// To:
+dataFormat: 'legacy'
+```
 
 ## Troubleshooting
 

@@ -16,37 +16,6 @@
       "label": "YouTube Channel ID",
       "description": "Default channel ID to load videos from - go to https://www.youtube.com/account_advanced when logged in to your account to copy and paste",
       "type": "string"
-    },
-    {
-      "name": "dataFormat",
-      "label": "Data Format",
-      "description": "Choose how video data is stored in fields",
-      "type": "choice",
-      "choices": [
-        {
-          "value": "simplified",
-          "text": "Simplified (Developer-Friendly Format - Recommended)"
-        },
-        {
-          "value": "legacy",
-          "text": "Legacy (Full YouTube API Response)"
-        }
-      ],
-      "defaultValue": "simplified"
-    },
-    {
-      "name": "includeTags",
-      "label": "Include Video Tags",
-      "description": "Include video tags in simplified format (when available)",
-      "type": "boolean",
-      "defaultValue": true
-    },
-    {
-      "name": "includeDescription",
-      "label": "Include Full Description",
-      "description": "Include full video description (can be lengthy)",
-      "type": "boolean",
-      "defaultValue": true
     }
   ],
   "capabilities": {

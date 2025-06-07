@@ -162,14 +162,6 @@ export default function YouTubePlaylistPickerField() {
                   Channel: {getDisplayData(selectedPlaylist).channelTitle}
                 </div>
               </div>
-              
-              {/* Show data format indicator */}
-              <div className="mt-3 text-xs text-gray-400 flex items-center justify-between">
-                <span>Format: {transformationConfig.dataFormat}</span>
-                {transformationConfig.dataFormat === 'simplified' && (
-                  <span className="text-green-600">✨ Developer-friendly</span>
-                )}
-              </div>
             </div>
           </div>
         ) : (

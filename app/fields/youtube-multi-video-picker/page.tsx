@@ -248,12 +248,6 @@ export default function YouTubeMultiVideoPickerField() {
                 <p className="text-sm text-gray-500 mt-1">
                   Drag the grip handles to reorder videos
                 </p>
-                <div className="text-xs text-gray-400 mt-1">
-                  Format: {transformationConfig.dataFormat}
-                  {transformationConfig.dataFormat === 'simplified' && (
-                    <span className="text-green-600 ml-2">✨ Developer-friendly</span>
-                  )}
-                </div>
               </div>
               <div className="flex gap-2">
                 <Button

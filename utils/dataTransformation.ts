@@ -139,11 +139,12 @@ export function isSimplifiedFormat(data: any): boolean {
 
 /**
  * Get configuration for data transformation from app context
+ * Defaults to simplified format with all options enabled
  */
 export function getTransformationConfig(appConfig: any) {
   return {
-    dataFormat: appConfig?.dataFormat || 'simplified',
-    includeTags: appConfig?.includeTags !== false,
-    includeDescription: appConfig?.includeDescription !== false
+    dataFormat: 'simplified', // Always use simplified format
+    includeTags: true,        // Always include tags when available
+    includeDescription: true  // Always include descriptions
   }
 }
