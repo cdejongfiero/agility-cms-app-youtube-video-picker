@@ -9,14 +9,14 @@
       "name": "apiKey",
       "label": "YouTube API Key",
       "description": "Your YouTube Data API v3 key",
-      "type": "text",
+      "type": "string",
       "required": true
     },
     {
       "name": "channelId",
       "label": "YouTube Channel ID",
       "description": "Default channel ID to load videos from (optional)",
-      "type": "text",
+      "type": "string",
       "required": false
     }
   ],
