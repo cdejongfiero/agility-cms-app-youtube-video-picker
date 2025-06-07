@@ -1,0 +1,60 @@
+{
+  "name": "YouTube Video Picker App",
+  "documentationLink": "https://github.com/your-org/agility-cms-app-youtube-video-picker",
+  "description": "YouTube video and playlist picker for Agility CMS with API integration.",
+  "version": "1.0.0",
+  "__sdkVersion": "2.0.0",
+  "configValues": [
+    {
+      "name": "apiKey",
+      "label": "YouTube API Key",
+      "description": "Your YouTube Data API v3 key",
+      "type": "text",
+      "required": true
+    },
+    {
+      "name": "channelId",
+      "label": "YouTube Channel ID",
+      "description": "Default channel ID to load videos from (optional)",
+      "type": "text",
+      "required": false
+    }
+  ],
+  "capabilities": {
+    "fields": [
+      {
+        "name": "youtube-video-picker",
+        "label": "YouTube Video Picker",
+        "description": "Select a single YouTube video with preview and metadata."
+      },
+      {
+        "name": "youtube-multi-video-picker",
+        "label": "YouTube Multiple Video Picker",
+        "description": "Select multiple YouTube videos with management interface."
+      },
+      {
+        "name": "youtube-playlist-picker",
+        "label": "YouTube Playlist Picker",
+        "description": "Select YouTube playlists with preview and metadata."
+      }
+    ],
+    "modals": [
+      {
+        "name": "youtube-video-selector",
+        "label": "YouTube Video Selector",
+        "description": "Modal for browsing and selecting YouTube videos."
+      },
+      {
+        "name": "youtube-multi-video-selector",
+        "label": "YouTube Multiple Video Selector",
+        "description": "Modal for selecting multiple YouTube videos."
+      },
+      {
+        "name": "youtube-playlist-selector",
+        "label": "YouTube Playlist Selector",
+        "description": "Modal for browsing and selecting YouTube playlists."
+      }
+    ],
+    "installScreen": true
+  }
+}
